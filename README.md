@@ -52,7 +52,7 @@ The plugin's row id is `dsh-octen`. All fields are optional and are read again f
 | --- | --- | --- |
 | `apiKeyEnv` | `OCTEN_API_KEY` | Credential reference the key is read from: the credentials store (what the Plugins page writes), then the environment |
 | `apiKey` | none | Literal key. Prefer `apiKeyEnv`, so no secret goes into a config file |
-| `baseURL` | `$OCTEN_API_URL`, then `https://api.octen.ai` | Octen API base |
+| `baseURL` | `$OCTEN_API_URL`, then `https://api.octen.ai` | Octen API base. Must be HTTPS, or HTTP to `localhost`. `OCTEN_API_URL` is read from the process environment or `~/.dsh/.env`, never from a project's `.env` |
 | `extractTimeoutSeconds` | `25` | Per-URL extraction timeout for `web_fetch`, 1–60. Keep it below the `web_fetch` tool budget (30 s by default) |
 
 Example:
@@ -69,7 +69,7 @@ Example:
 - **Search.** The harness sets the result count (8 by default), and the plugin passes it to Octen as `count`. Results without a URL are dropped; a missing title, highlight, or date is left out instead of being made up.
 - **Fetch.** Octen extracts the page server-side, so the harness does not download or convert HTML itself. A successful extraction reports HTTP status 200, because Octen does not return the origin's status code. If Octen cannot extract the page, the tool call fails with Octen's reason, for example `Failed to resolve domain`.
 - **Errors.** A missing key fails with `WEB_PROVIDER_CREDENTIAL_MISSING` before any request is sent. A rejected key, an exhausted balance, a rate limit, or a server error fails with `WEB_PROVIDER_ERROR` and Octen's message. Cancellation reports `WEB_ABORTED`.
-- **Security.** Requests carry your key in the `x-api-key` header and refuse redirects, so the key is never forwarded to another host.
+- **Security.** Requests carry your key in the `x-api-key` header, refuse redirects, and go only to an HTTPS base (or HTTP on `localhost`). A project's `.env` cannot change the endpoint, so opening an untrusted repository cannot redirect your key.
 
 ## Development
 

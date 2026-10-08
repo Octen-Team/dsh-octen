@@ -32,6 +32,7 @@ export {
   mapOctenExtractResult,
   mapOctenSearchData,
   mapOctenSearchResult,
+  isAllowedBaseURL,
   OCTEN_DEFAULT_API_KEY_ENV,
   OCTEN_DEFAULT_BASE_URL,
   OCTEN_DEFAULT_EXTRACT_TIMEOUT_SECONDS,
@@ -50,13 +51,25 @@ export const inject = ['web']
 /** Environment variable that overrides the API base when the row sets none. */
 const BASE_URL_ENV = 'OCTEN_API_URL'
 
+/** Launch-environment layers {@link BASE_URL_ENV} is read from; the project `.env` is excluded. */
+const TRUSTED_BASE_URL_SOURCES = ['process', 'user-env'] as const
+
+/** An empty value reads as absent. */
+function nonEmpty(value: string | undefined): string | undefined {
+  return value !== undefined && value.length > 0 ? value : undefined
+}
+
 /** Plugin config. Every field is re-read at the start of each operation. */
 export interface Config {
   /** Literal Octen API key; prefer {@link apiKeyEnv} so no secret enters configuration files. */
   apiKey: Volatile<string | undefined>
   /** Credential reference the key is resolved from. Defaults to `OCTEN_API_KEY`. */
   apiKeyEnv: Volatile<string>
-  /** API base; `/search` and `/extract` are appended. Defaults to `$OCTEN_API_URL`, then `https://api.octen.ai`. */
+  /**
+   * API base; `/search` and `/extract` are appended. Defaults to `$OCTEN_API_URL` from the process
+   * environment or the Harness home `.env` (never the project `.env`), then `https://api.octen.ai`.
+   * Must be HTTPS, or HTTP to a loopback host.
+   */
   baseURL: Volatile<string | undefined>
   /** Per-URL extraction timeout for `web_fetch`, 1–60 seconds. Defaults to 25. */
   extractTimeoutSeconds: Volatile<number>
@@ -68,7 +81,7 @@ export const Config = z.object({
   apiKeyEnv: z.string().role('credential-ref').default(OCTEN_DEFAULT_API_KEY_ENV).volatile()
     .description('Stored credential or environment variable holding the Octen API key.'),
   baseURL: z.string().volatile()
-    .description('Octen API base. Leave blank for $OCTEN_API_URL or https://api.octen.ai.'),
+    .description('Octen API base (HTTPS, or HTTP to localhost). Leave blank for $OCTEN_API_URL or https://api.octen.ai.'),
   extractTimeoutSeconds: z.number().step(1).min(1).max(60).default(OCTEN_DEFAULT_EXTRACT_TIMEOUT_SECONDS).volatile()
     .description('Per-URL extraction timeout for web_fetch, in seconds. Keep it below the web_fetch tool budget (30 s by default).'),
 })
@@ -104,7 +117,11 @@ export function resolveOptions(ctx: Context, config: ConfigValues): OctenProvide
       const ambient = launchEnvironmentOf(ctx).get(apiKeyEnv)?.value
       return ambient !== undefined && ambient.length > 0 ? ambient : undefined
     },
-    baseURL: configuredBase ?? launchEnvironmentOf(ctx).get(BASE_URL_ENV)?.value ?? OCTEN_DEFAULT_BASE_URL,
+    // The invoking directory's `.env` is not trusted to move the endpoint: a
+    // cloned project could otherwise redirect the key to a host it controls.
+    baseURL: configuredBase
+      ?? nonEmpty(launchEnvironmentOf(ctx).getFrom(BASE_URL_ENV, TRUSTED_BASE_URL_SOURCES)?.value)
+      ?? OCTEN_DEFAULT_BASE_URL,
     extractTimeoutSeconds: config.extractTimeoutSeconds,
   }
 }

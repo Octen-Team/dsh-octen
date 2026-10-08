@@ -176,11 +176,26 @@ export class OctenFetchProvider implements WebFetchProvider {
   }
 }
 
-/** True when the options can serve a call: a parseable base, some key source, and an in-range timeout. */
+/** True when the options can serve a call: an allowed base, some key source, and an in-range timeout. */
 function isUsable(options: OctenProviderOptions): boolean {
   const hasKeySource = (options.apiKey?.length ?? 0) > 0 || options.resolveApiKey !== undefined
   const timeout = options.extractTimeoutSeconds
-  return hasKeySource && URL.canParse(options.baseURL) && Number.isInteger(timeout) && timeout >= 1 && timeout <= 60
+  return hasKeySource && isAllowedBaseURL(options.baseURL) && Number.isInteger(timeout) && timeout >= 1 && timeout <= 60
+}
+
+/** Loopback hosts that may be reached over plain HTTP, for local gateways and tests. */
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+
+/**
+ * Whether the key may be sent to `baseURL`: HTTPS anywhere, plain HTTP only to
+ * a loopback host, so the key never crosses a network in cleartext.
+ * @param baseURL - the configured API base.
+ * @returns true when the base parses and its scheme and host are allowed.
+ */
+export function isAllowedBaseURL(baseURL: string): boolean {
+  if (!URL.canParse(baseURL)) return false
+  const { protocol, hostname } = new URL(baseURL)
+  return protocol === 'https:' || (protocol === 'http:' && LOOPBACK_HOSTS.has(hostname))
 }
 
 /**
@@ -195,6 +210,11 @@ async function callOcten<D>(
   operation: string,
   signal: AbortSignal | undefined,
 ): Promise<D | undefined> {
+  // `available()` already refuses these bases; checked again here because the
+  // seam may call a provider that was selected before the config changed.
+  if (!isAllowedBaseURL(options.baseURL)) {
+    throw new WebError(`Octen ${operation} refused base URL ${JSON.stringify(options.baseURL)}: use https, or http only for localhost`, 'WEB_PROVIDER_ERROR')
+  }
   const apiKey = await resolveKey(options)
   const url = `${options.baseURL.replace(/\/+$/, '')}${path}`
   let response: Response

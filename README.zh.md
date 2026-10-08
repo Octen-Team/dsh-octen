@@ -52,7 +52,7 @@ export OCTEN_API_KEY=your-key
 | --- | --- | --- |
 | `apiKeyEnv` | `OCTEN_API_KEY` | 读取密钥用的凭据引用：先查凭据存储（插件页面保存的就在这里），再查环境变量 |
 | `apiKey` | 无 | 直接写明文密钥。建议用 `apiKeyEnv`，避免把密钥写进配置文件 |
-| `baseURL` | 先取 `$OCTEN_API_URL`，再用 `https://api.octen.ai` | Octen API 地址 |
+| `baseURL` | 先取 `$OCTEN_API_URL`，再用 `https://api.octen.ai` | Octen API 地址。必须是 HTTPS，或者指向 `localhost` 的 HTTP。`OCTEN_API_URL` 只从进程环境或 `~/.dsh/.env` 读取，不读项目里的 `.env` |
 | `extractTimeoutSeconds` | `25` | `web_fetch` 单个 URL 的提取超时，1–60 秒。要小于 `web_fetch` 工具的超时（默认 30 秒） |
 
 示例：
@@ -69,7 +69,7 @@ export OCTEN_API_KEY=your-key
 - **搜索。** 结果条数由 harness 决定（默认 8 条），插件把它作为 `count` 传给 Octen。没有 URL 的结果会被丢弃；缺标题、摘录或日期时直接留空，不会编造。
 - **抓取。** 页面由 Octen 在服务端提取，harness 本地不下载、也不转换 HTML。Octen 不返回源站的状态码，所以提取成功一律报 HTTP 200。提取失败时，工具调用会带着 Octen 给的原因报错，例如 `Failed to resolve domain`。
 - **错误。** 没有密钥时，请求发出之前就报 `WEB_PROVIDER_CREDENTIAL_MISSING`。密钥无效、余额不足、限流或服务端错误都报 `WEB_PROVIDER_ERROR`，并附上 Octen 的错误信息。取消报 `WEB_ABORTED`。
-- **安全。** 密钥放在 `x-api-key` 请求头里，请求拒绝重定向，所以密钥不会被转发到别的主机。
+- **安全。** 密钥放在 `x-api-key` 请求头里；请求拒绝重定向，而且只发往 HTTPS 地址（或 `localhost` 上的 HTTP）。项目里的 `.env` 改不了接口地址，所以打开一个不可信的仓库也没法把你的密钥引到别处。
 
 ## 开发
 

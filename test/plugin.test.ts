@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import * as octen from '../src/index.ts'
+import { resolveOptions } from '../src/index.ts'
 import { json, startStub, type StubServer } from './helpers.ts'
 
 let stub: StubServer
@@ -71,6 +72,20 @@ describe('plugin', () => {
     await expect(ctx.web.search({ query: 'x' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_CREDENTIAL_MISSING' })
     expect(stub.seen).toHaveLength(0)
     await ctx.fiber.dispose()
+  })
+
+  it('does not let a project .env move the endpoint the key is sent to', () => {
+    const base = (layers: Parameters<typeof createLaunchEnvironmentSnapshot>[0]) => {
+      const ctx = new Context()
+      ctx.provide('launchEnvironment', createLaunchEnvironmentSnapshot(layers))
+      return resolveOptions(ctx, { apiKey: 'k', apiKeyEnv: 'OCTEN_API_KEY', baseURL: undefined, extractTimeoutSeconds: 25 }).baseURL
+    }
+    expect(base([{ source: 'project-env', path: '/repo/.env', values: { OCTEN_API_URL: 'https://attacker.example' } }]))
+      .toBe('https://api.octen.ai')
+    expect(base([{ source: 'user-env', path: '/home/.dsh/.env', values: { OCTEN_API_URL: 'https://gateway.example' } }]))
+      .toBe('https://gateway.example')
+    expect(base([{ source: 'process', values: { OCTEN_API_URL: 'https://proxy.example' } }]))
+      .toBe('https://proxy.example')
   })
 
   it('rejects an out-of-range extraction timeout in the row', async () => {

@@ -6,6 +6,7 @@ import {
   OctenFetchProvider,
   OctenSearchProvider,
   USER_AGENT,
+  isAllowedBaseURL,
   mapOctenExtractResult,
   mapOctenSearchData,
   type OctenProviderOptions,
@@ -243,6 +244,34 @@ describe('availability', () => {
     expect(available({ ...base, apiKey: 'k', extractTimeoutSeconds: 0 })).toBe(false)
     expect(available({ ...base, apiKey: 'k', extractTimeoutSeconds: 61 })).toBe(false)
     expect(new OctenFetchProvider(() => ({ ...base, apiKey: 'k' })).available()).toBe(true)
+  })
+})
+
+describe('base URL policy', () => {
+  it('allows HTTPS anywhere and plain HTTP only to loopback hosts', () => {
+    expect(isAllowedBaseURL('https://api.octen.ai')).toBe(true)
+    expect(isAllowedBaseURL('https://gateway.example.com/octen/')).toBe(true)
+    expect(isAllowedBaseURL('http://localhost:8080')).toBe(true)
+    expect(isAllowedBaseURL('http://127.0.0.1:9')).toBe(true)
+    expect(isAllowedBaseURL('http://[::1]:9')).toBe(true)
+    expect(isAllowedBaseURL('http://api.octen.ai')).toBe(false)
+    expect(isAllowedBaseURL('http://192.168.1.10')).toBe(false)
+    expect(isAllowedBaseURL('ftp://api.octen.ai')).toBe(false)
+    expect(isAllowedBaseURL('not a url')).toBe(false)
+  })
+
+  it('never sends the key to a disallowed base, even if the provider was selected earlier', async () => {
+    const provider = new OctenSearchProvider(() => options({ baseURL: 'http://attacker.example' }))
+    expect(provider.available()).toBe(false)
+    let resolved = false
+    const guarded = new OctenSearchProvider(() => options({
+      baseURL: 'http://attacker.example',
+      resolveApiKey: () => { resolved = true; return Promise.resolve('k') },
+    }))
+    const error = await failure(() => guarded.search({ query: 'x' }))
+    expect(error.code).toBe('WEB_PROVIDER_ERROR')
+    expect(error.message).toContain('refused base URL')
+    expect(resolved).toBe(false)
   })
 })
 
