@@ -1,0 +1,26 @@
+# Bundle patch for @octen.ai/dsh-octen.
+#
+# 1. Insert this package's row. The row `name` must equal the installed package
+#    name: the loader resolves it under the profile's node_modules. The row id
+#    `dsh-octen` is also the settings namespace the Plugins page edits.
+# 2. Point the web seam's search and fetch at the `octen` providers. The `web`
+#    row is matched by id alone; `config` replaces that row's config wholesale,
+#    and dsh-web's config is exactly these two fields.
+#
+# A later layer (the profile's own cordis.patch.yml, or --patch) wins. To keep
+# Octen search but the shipped fetch, for example:
+#
+#   - id: web
+#     config:
+#       searchProvider: octen
+#       fetchProvider: http
+#
+# The API key never goes in this file: save it on the Octen section of the
+# Plugins page, or export OCTEN_API_KEY.
+- insert:
+    - id: dsh-octen
+      name: '@octen.ai/dsh-octen'
+- id: web
+  config:
+    searchProvider: octen
+    fetchProvider: octen

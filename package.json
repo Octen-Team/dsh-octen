@@ -1,0 +1,107 @@
+{
+  "name": "@octen.ai/dsh-octen",
+  "version": "0.1.0",
+  "description": "Octen web search and fetch for DeepSeek Harness: web_search through Octen /search, web_fetch through Octen /extract.",
+  "keywords": [
+    "dsh-plugin",
+    "dsh-bundle",
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "octen",
+    "web-search",
+    "web-fetch"
+  ],
+  "homepage": "https://github.com/Octen-Team/dsh-octen#readme",
+  "bugs": {
+    "url": "https://github.com/Octen-Team/dsh-octen/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Octen-Team/dsh-octen.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.d.ts",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "icon.png",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "icon": "./icon.png",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "test:live": "OCTEN_LIVE=1 vitest run test/live.test.ts",
+    "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
+        "@deepseek-ai/dsh-api-remotes"
+      ],
+      "platform": "web"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-credentials": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-launch-environment": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-web": "^0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/dsh-api-remotes": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-locale": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-store": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-launch-environment": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-web": "0.2.0-rc.2",
+    "@types/node": "^22.20.5",
+    "@types/react": "~18.3.31",
+    "@vitest/coverage-v8": "^4.1.11",
+    "react": "^18.3.1",
+    "tsdown": "^0.22.14",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "packageManager": "pnpm@12.8.1"
+}
