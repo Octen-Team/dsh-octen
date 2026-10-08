@@ -205,6 +205,14 @@ describe('mapping', () => {
     expect(mapOctenSearchData(undefined)).toEqual({ sources: [], truncated: false })
   })
 
+  it('does not repeat a title the Markdown already opens with', () => {
+    const page = (content: string) => mapOctenExtractResult('https://a.test', { status: 'success', title: 'Example Domains', full_content: content }).body.content
+    expect(page('\n# Example Domains\n\nBody')).toBe('\n# Example Domains\n\nBody')
+    expect(page('## Example Domains\n\nBody')).toBe('## Example Domains\n\nBody')
+    expect(page('# Other heading\n\nBody')).toBe('# Example Domains\n\n# Other heading\n\nBody')
+    expect(page('Example Domains are reserved')).toBe('# Example Domains\n\nExample Domains are reserved')
+  })
+
   it('keeps the requested URL and skips the heading when Octen returns neither', () => {
     expect(mapOctenExtractResult('https://a.test', { status: 'success', full_content: null })).toEqual({
       url: 'https://a.test', statusCode: 200, body: { kind: 'text', content: '' }, truncated: false,

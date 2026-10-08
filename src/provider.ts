@@ -114,7 +114,7 @@ export function mapOctenSearchData(data: OctenSearchData | undefined): WebSearch
  * Map one `POST /extract` result to a fetch result.
  * @param requestUrl - the URL the caller asked for.
  * @param result - the first entry of `data.results[]`, if any.
- * @returns the fetched page as Markdown text, headed by its title when Octen found one.
+ * @returns the fetched page as Markdown text, headed by its title when Octen found one and the text does not already open with it.
  * @throws {WebError} `WEB_PROVIDER_ERROR` when Octen returned no result or reports the extraction failed.
  */
 export function mapOctenExtractResult(requestUrl: string, result: OctenExtractResult | undefined): WebFetchResult {
@@ -130,7 +130,7 @@ export function mapOctenExtractResult(requestUrl: string, result: OctenExtractRe
   return {
     url: nonBlank(result.url) ?? requestUrl,
     statusCode: 200,
-    body: { kind: 'text', content: title === undefined ? body : `# ${title}\n\n${body}` },
+    body: { kind: 'text', content: title === undefined || startsWithHeading(body, title) ? body : `# ${title}\n\n${body}` },
     truncated: false,
   }
 }
@@ -255,6 +255,12 @@ async function resolveKey(options: OctenProviderOptions): Promise<string> {
     + 'or get a key at https://octen.ai.',
     'WEB_PROVIDER_CREDENTIAL_MISSING',
   )
+}
+
+/** True when the Markdown already opens with a heading that reads `title`. */
+function startsWithHeading(markdown: string, title: string): boolean {
+  const firstLine = markdown.trimStart().split('\n', 1)[0] ?? ''
+  return /^#{1,6}\s/.test(firstLine) && firstLine.replace(/^#{1,6}\s+/, '').trim() === title.trim()
 }
 
 /** Read an optional wire string: anything that is not a non-blank string is absent. */
