@@ -17,11 +17,13 @@ You need DeepSeek Harness 0.2.0-rc.2 or later and an Octen API key from [octen.a
 
 **From the web UI:** open **Plugins**, click **Add plugin**, enter `@octen.ai/dsh-octen`, and click **Install**. Then open the plugin's page, paste your key into **Octen API key**, and click **Save**.
 
-**From a terminal:**
+**From a terminal:** use the profile you run. The desktop app's profile is `desktop`; `dsh web` uses `web`.
 
 ```sh
-dsh plugin --profile web add @octen.ai/dsh-octen
+dsh plugin --profile desktop add @octen.ai/dsh-octen
 ```
+
+If your shell says `command not found: dsh`, open the desktop app and choose **DeepSeek Harness → Manage dsh Command… → Install**, then open a new terminal. Restart the desktop app afterwards if it was running.
 
 Then save the key on the plugin's page in the web UI, or export it in the environment that launches DeepSeek Harness:
 
@@ -33,7 +35,7 @@ Installing the plugin points both `web_search` and `web_fetch` at Octen. Ask the
 
 ## Choose which tools use Octen
 
-Search and fetch are selected separately. To keep Octen search but go back to the shipped HTTP fetch, add this to your profile's `cordis.patch.yml` (for example `~/.dsh/profiles/web/cordis.patch.yml`):
+Search and fetch are selected separately. To keep Octen search but go back to the shipped HTTP fetch, add this to your profile's `cordis.patch.yml` (for example `~/.dsh/profiles/desktop/cordis.patch.yml`):
 
 ```yaml
 - id: web
@@ -85,7 +87,7 @@ To try a local build, pack it and add the tarball to a profile:
 
 ```sh
 npm pack
-dsh plugin --profile web add "$PWD/octen.ai-dsh-octen-0.1.0.tgz"
+dsh plugin --profile desktop add "$PWD/octen.ai-dsh-octen-0.1.0.tgz"
 ```
 
 The package has two halves. `src/index.ts` is the host plugin that registers the providers. `src/client/` is the settings section on the plugin's Plugins page, bundled as a `window.__ModuleLoader__` factory that the harness web shell loads.

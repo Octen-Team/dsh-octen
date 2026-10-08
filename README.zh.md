@@ -17,11 +17,13 @@
 
 **在 Web 界面安装：** 打开 **插件**，点 **添加插件**，填入 `@octen.ai/dsh-octen`，点 **安装**。然后打开这个插件的页面，在 **Octen API Key** 里粘贴密钥，点 **保存**。
 
-**在终端安装：**
+**在终端安装：** 用你实际在跑的 profile。桌面 App 的 profile 是 `desktop`，`dsh web` 用的是 `web`。
 
 ```sh
-dsh plugin --profile web add @octen.ai/dsh-octen
+dsh plugin --profile desktop add @octen.ai/dsh-octen
 ```
+
+如果终端提示 `command not found: dsh`，先打开桌面 App，在菜单栏选 **DeepSeek Harness → 管理 dsh 命令… → 安装**，再开一个新终端。如果 App 正开着，装完插件后重启一下 App。
 
 然后在 Web 界面的插件页面保存密钥，或者在启动 DeepSeek Harness 的环境里导出：
 
@@ -33,7 +35,7 @@ export OCTEN_API_KEY=your-key
 
 ## 选择哪些工具走 Octen
 
-搜索和抓取是分开选的。如果只想用 Octen 搜索，抓取仍用自带的 HTTP 抓取，在 profile 的 `cordis.patch.yml`（例如 `~/.dsh/profiles/web/cordis.patch.yml`）里加：
+搜索和抓取是分开选的。如果只想用 Octen 搜索，抓取仍用自带的 HTTP 抓取，在 profile 的 `cordis.patch.yml`（例如 `~/.dsh/profiles/desktop/cordis.patch.yml`）里加：
 
 ```yaml
 - id: web
@@ -85,7 +87,7 @@ pnpm run build                    # 产出 lib/index.js（host 侧）和 lib/cli
 
 ```sh
 npm pack
-dsh plugin --profile web add "$PWD/octen.ai-dsh-octen-0.1.0.tgz"
+dsh plugin --profile desktop add "$PWD/octen.ai-dsh-octen-0.1.0.tgz"
 ```
 
 代码分两部分。`src/index.ts` 是注册 provider 的 host 插件。`src/client/` 是插件页面上的设置区块，打包成 `window.__ModuleLoader__` 工厂，由 harness 的 Web 外壳加载。
