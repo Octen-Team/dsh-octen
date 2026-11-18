@@ -13,19 +13,30 @@
 
 ## 安装
 
-需要 DeepSeek Harness 0.2.0-rc.2 或更新版本，以及一个 Octen API Key（在 [octen.ai](https://octen.ai) 获取）。
+需要：
+
+- DeepSeek Harness 0.2.x：0.2.0-rc.2 或更新，低于 0.3.0。
+- Node.js 22.19 或更新。DeepSeek Harness 0.2.2 的各个预发布版要求 Node.js 24.9 或更新。
+- 用 npm 或 `npx` 的 `dsh` 命令时，`PATH` 上要有 `pnpm`，因为 `dsh plugin` 底层调用 `pnpm add`。桌面 App 安装的 `dsh` 命令自带 pnpm。
+- 一个 Octen API Key（在 [Octen API Platform](https://octen.ai/platform/api-keys) 创建）。
 
 **在 Web 界面安装：** 打开 **插件**，点 **添加插件**，填入 `@octen.ai/dsh-octen`，点 **安装**。然后打开这个插件的页面，在 **Octen API Key** 里粘贴密钥，点 **保存**。
 
-**在终端安装：** 用你实际在跑的 profile。桌面 App 的 profile 是 `desktop`，`dsh web` 用的是 `web`。
+**在终端安装：** 插件按 profile 安装。用你实际在跑的 profile，`dsh web` 用的是 `web`。
 
 ```sh
-dsh plugin --profile desktop add @octen.ai/dsh-octen
+dsh plugin --profile web add @octen.ai/dsh-octen
 ```
 
-如果终端提示 `command not found: dsh`，先打开桌面 App，在菜单栏选 **DeepSeek Harness → 管理 dsh 命令… → 安装**，再开一个新终端。如果 App 正开着，装完插件后重启一下 App。
+`PATH` 上没有 `dsh` 命令时，通过 npm 运行同一条命令：`npx @deepseek-ai/dsh plugin --profile web add @octen.ai/dsh-octen`。
 
-然后在 Web 界面的插件页面保存密钥，或者在启动 DeepSeek Harness 的环境里导出：
+**桌面 App：** 它的 `desktop` profile 只能用桌面 App 安装的 `dsh` 命令修改（菜单栏 **DeepSeek Harness → 管理 dsh 命令… → 安装**）。其他方式启动的 `dsh`，包括 `npx`，会报 `profile "desktop" is managed exclusively by the Electron application`。
+
+1. 先打开一次桌面 App，让它初始化 profile，然后完全退出。只关窗口不够。
+2. 在新终端里运行 `dsh plugin --profile desktop add @octen.ai/dsh-octen`。
+3. 重新打开桌面 App，加载插件。
+
+然后在 Web 界面的插件页面保存密钥，或者把 `OCTEN_API_KEY=your-key` 写进 `~/.dsh/.env`，或者在启动 DeepSeek Harness 的环境里导出：
 
 ```sh
 export OCTEN_API_KEY=your-key
@@ -35,7 +46,7 @@ export OCTEN_API_KEY=your-key
 
 ## 选择哪些工具走 Octen
 
-搜索和抓取是分开选的。如果只想用 Octen 搜索，抓取仍用自带的 HTTP 抓取，在 profile 的 `cordis.patch.yml`（例如 `~/.dsh/profiles/desktop/cordis.patch.yml`）里加：
+搜索和抓取是分开选的。如果只想用 Octen 搜索，抓取仍用自带的 HTTP 抓取，在 profile 的 `cordis.patch.yml`（例如 `~/.dsh/profiles/web/cordis.patch.yml`）里加下面的内容。这个文件必须保持是 YAML 列表：如果里面只有空列表 `[]`，要用你的条目替换这一行，否则 DeepSeek Harness 会报 `failed to parse overlay`，无法启动。
 
 ```yaml
 - id: web
@@ -48,7 +59,7 @@ export OCTEN_API_KEY=your-key
 
 ## 配置
 
-插件行的 id 是 `dsh-octen`。所有字段都可以不填；每次调用都会重新读取，改完不用重启。
+插件行的 id 是 `dsh-octen`。所有字段都可以不填。
 
 | 字段 | 默认值 | 含义 |
 | --- | --- | --- |
@@ -57,7 +68,7 @@ export OCTEN_API_KEY=your-key
 | `baseURL` | 先取 `$OCTEN_API_URL`，再用 `https://api.octen.ai` | Octen API 地址。必须是 HTTPS，或者指向 `localhost` 的 HTTP。`OCTEN_API_URL` 只从进程环境或 `~/.dsh/.env` 读取，不读项目里的 `.env` |
 | `extractTimeoutSeconds` | `25` | `web_fetch` 单个 URL 的提取超时，1–60 秒。要小于 `web_fetch` 工具的超时（默认 30 秒） |
 
-示例：
+例如，要从另一个变量读取密钥并缩短抓取超时，在 profile 的 `cordis.patch.yml` 里加：
 
 ```yaml
 - id: dsh-octen
@@ -68,10 +79,20 @@ export OCTEN_API_KEY=your-key
 
 ## 行为说明
 
-- **搜索。** 结果条数由 harness 决定（默认 8 条），插件把它作为 `count` 传给 Octen。没有 URL 的结果会被丢弃；缺标题、摘录或日期时直接留空，不会编造。
+- **搜索。** 结果条数由 harness 决定，插件把它作为 `count` 传给 Octen。没有 URL 的结果会被丢弃；缺标题、摘录或日期时直接留空，不会编造。
 - **抓取。** 页面由 Octen 在服务端提取，harness 本地不下载、也不转换 HTML。Octen 不返回源站的状态码，所以提取成功一律报 HTTP 200。提取失败时，工具调用会带着 Octen 给的原因报错，例如 `Failed to resolve domain`。
 - **错误。** 没有密钥时，请求发出之前就报 `WEB_PROVIDER_CREDENTIAL_MISSING`。密钥无效、余额不足、限流或服务端错误都报 `WEB_PROVIDER_ERROR`，并附上 Octen 的错误信息。取消报 `WEB_ABORTED`。
 - **安全。** 密钥放在 `x-api-key` 请求头里；请求拒绝重定向，而且只发往 HTTPS 地址（或 `localhost` 上的 HTTP）。项目里的 `.env` 改不了接口地址，所以打开一个不可信的仓库也没法把你的密钥引到别处。
+
+## 卸载
+
+如果你在 profile 的 `cordis.patch.yml` 里加过 `id: web` 或 `id: dsh-octen` 条目，先删掉它们；删完没有条目了，就把 `[]` 放回去。留着这些条目，搜索会继续指向一个已经不存在的 provider。然后卸载插件：
+
+```sh
+dsh plugin --profile web remove @octen.ai/dsh-octen
+```
+
+之后 profile 的配置会和安装插件之前一样。可以运行 `dsh web --dump-config` 确认。桌面 App 的话，先完全退出，用它安装的 `dsh` 命令运行 `dsh plugin --profile desktop remove @octen.ai/dsh-octen`，再重新打开。
 
 ## 开发
 
@@ -87,7 +108,7 @@ pnpm run build                    # 产出 lib/index.js（host 侧）和 lib/cli
 
 ```sh
 npm pack
-dsh plugin --profile desktop add "$PWD/octen.ai-dsh-octen-0.1.0.tgz"
+dsh plugin --profile web add "$PWD/octen.ai-dsh-octen-0.1.0.tgz"
 ```
 
 代码分两部分。`src/index.ts` 是注册 provider 的 host 插件。`src/client/` 是插件页面上的设置区块，打包成 `window.__ModuleLoader__` 工厂，由 harness 的 Web 外壳加载。
